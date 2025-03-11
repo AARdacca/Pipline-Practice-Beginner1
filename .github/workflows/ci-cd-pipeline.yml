@@ -28,7 +28,7 @@ jobs:
           npm check > check-results.txt
 
       - name: Archive check results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: check-results
           path: check-results.txt
