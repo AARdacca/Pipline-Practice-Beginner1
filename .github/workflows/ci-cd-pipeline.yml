@@ -1,65 +1,68 @@
-name: Node.js CI/CD Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
+    branches:
+      - main
 
 jobs:
-  # ---------------------------
-  # 1) TEST JOB
-  # ---------------------------
   test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Use Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run "npm check"
-        run: |
-          npm check > check-results.txt
-
-      - name: Archive check results
-        uses: actions/upload-artifact@v4
-        with:
-          name: check-results
-          path: check-results.txt
-          if-no-files-found: error
-          retention-days: 1  # Forces GitHub to recognize a new artifact
-
-  # ---------------------------
-  # 2) DEPLOY JOB
-  # ---------------------------
-  deploy:
-    needs: [ test ]
     runs-on: self-hosted
-
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: check-results
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+        
+    - name: Install dependencies
+      run: npm install
+    - name: Create An Artifact
+      run: echo "hello World" > hello.txt
+    - name: Upload An Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: hello_artiface
+        path: ./hello.txt
+    - name: Run tests
+      run: npm test
 
-      - name: Display check results
-        run: cat check-results.txt
+  build-and-deploy:
+    needs: test
+    runs-on: self-hosted
+    steps:
+    - name: Checkout The Code 
+      uses: actions/checkout@v3
+    
+    - name: Download The Artiface
+      uses: actions/download-artifact@v4
+      with:
+        name: hello_artiface
+    - name: Print The Artiface
+      run: |
+        cat ./hello.txt
 
-      - name: Check out repository
-        uses: actions/checkout@v4
+    - name: Build application
+      run: |
+        npm install
+        # Add any build steps if needed
+        
+  # We Need To install PM2 on Our Environment first
+    - name: Deploy application
+      run: |
+        ls -a
+        pm2 status
+        # Stop existing process if running
+        pm2 delete node-app || true
 
-      - name: Install dependencies on self-hosted runner
-        run: npm install
 
-      - name: Run Deployment with PM2
-        run: |
-          pm2 delete node-app || true
-          pm2 start "./src/server.js" --name node-app
-          pm2 save
-          echo "Deployment completed on self-hosted runner!"
+        
+        # Start new process
+        pm2 start ./src/server.js --name node-app
+        
+        # Save PM2 process list
+        pm2 save
