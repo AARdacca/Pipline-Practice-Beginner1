@@ -29,7 +29,7 @@ jobs:
         name: hello_artiface
         path: ./hello.txt
     - name: Run tests
-      run: npm check
+      run: npm run check
 
   build-and-deploy:
     needs: test
