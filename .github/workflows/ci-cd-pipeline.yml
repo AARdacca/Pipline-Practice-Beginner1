@@ -27,7 +27,7 @@ jobs:
       - name: Run Tests and Save Results
         run: |
           mkdir -p test-results
-          npm test -- --json > test-results/test-results.json
+          npm run check -- --json > test-results/test-results.json
 
       - name: Upload Test Results as Artifact
         uses: actions/upload-artifact@v4
