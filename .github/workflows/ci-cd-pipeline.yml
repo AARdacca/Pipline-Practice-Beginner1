@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline for Node.js Application
 
 on:
   push:
@@ -10,59 +10,68 @@ on:
 
 jobs:
   test:
+    name: Run Tests
     runs-on: self-hosted
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: "22"
-        
-    - name: Install dependencies
-      run: npm install
-    - name: Create An Artifact
-      run: echo "hello World" > hello.txt
-    - name: Upload An Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: hello_artiface
-        path: ./hello.txt
-    - name: Run tests
-      run: npm run check
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
-  build-and-deploy:
-    needs: test
+      - name: Install Dependencies
+        run: npm ci  # Faster than npm install for CI/CD
+
+      - name: Run Tests and Save Results
+        run: |
+          mkdir -p test-results
+          npm test -- --json > test-results/test-results.json
+
+      - name: Upload Test Results as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results
+
+  deploy:
+    name: Build and Deploy
+    needs: test  # Ensures test job runs first
     runs-on: self-hosted
     steps:
-    - name: Checkout The Code 
-      uses: actions/checkout@v3
-    
-    - name: Download The Artiface
-      uses: actions/download-artifact@v4
-      with:
-        name: hello_artiface
-    - name: Print The Artiface
-      run: |
-        cat ./hello.txt
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Build application
-      run: |
-        npm install
-        # Add any build steps if needed
-        
-  # We Need To install PM2 on Our Environment first
-    - name: Deploy application
-      run: |
-        ls -a
-        pm2 status
-        # Stop existing process if running
-        pm2 delete node-app || true
+      - name: Download Test Results
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results
+          path: ./test-results
 
+      - name: Display Test Results
+        run: cat ./test-results/test-results.json || echo "No test results found"
 
-        
-        # Start new process
-        pm2 start ./src/server.js --name node-app
-        
-        # Save PM2 process list
-        pm2 save
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Application
+        run: |
+          npm run build  # Ensure this script exists in package.json
+
+      - name: Deploy Application Using PM2
+        run: |
+          echo "Listing files before deployment..."
+          ls -a
+
+          echo "Checking PM2 status..."
+          pm2 status
+
+          # Stop existing app if running
+          pm2 delete node-app || true
+
+          # Start new process
+          pm2 start ./src/server.js --name node-app
+
+          # Save PM2 process list
+          pm2 save
