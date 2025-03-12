@@ -57,7 +57,7 @@ jobs:
 
       - name: Build Application
         run: |
-          npm run build  # Ensure this script exists in package.json
+          npm install
 
       - name: Deploy Application Using PM2
         run: |
